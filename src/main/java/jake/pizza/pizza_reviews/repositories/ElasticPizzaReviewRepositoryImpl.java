@@ -1,8 +1,8 @@
 package jake.pizza.pizza_reviews.repositories;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,46 +10,76 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.core.RefreshPolicy;
 import org.springframework.stereotype.Repository;
 
-import com.mongodb.ReadConcern;
-import com.mongodb.ReadPreference;
-import com.mongodb.TransactionOptions;
-import com.mongodb.WriteConcern;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoCollection;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.IndexResponse;
 
-import jakarta.annotation.PostConstruct;
 import jake.pizza.pizza_reviews.models.PizzaReview;
 
 @Repository
 public class ElasticPizzaReviewRepositoryImpl implements PizzaReviewRepository {
 
-    private static final TransactionOptions txnOptions = TransactionOptions.builder()
-            .readPreference(ReadPreference.primary())
-            .readConcern(ReadConcern.MAJORITY)
-            .writeConcern(WriteConcern.MAJORITY)
-            .build();
-    private final MongoClient client;
-    private MongoCollection<PizzaReview> pizzaReviewCollection;
+    private final ElasticsearchClient elasticsearchClient;
 
-    public ElasticPizzaReviewRepositoryImpl(MongoClient mongoClient) {
-        this.client = mongoClient;
+    public ElasticPizzaReviewRepositoryImpl(ElasticsearchClient elasticsearchClient) {
+        this.elasticsearchClient = elasticsearchClient;
     }
 
-    @PostConstruct
-    void init() {
-        pizzaReviewCollection = client.getDatabase("test").getCollection("pizzaReviews", PizzaReview.class);
-    }
+    @Override
+    public <S extends PizzaReview> S save(S entity) {
+        try {
+            IndexResponse indexResponse = elasticsearchClient.index(i -> i
+                .index("pizza-reviews")
+                .id(entity.getId())
+                .document(entity));
+            return entity;
+        } catch (Exception e) {
+            // TODO: better error handling
+            return null;
+        }
 
+    }
 
     @Override
     public List<PizzaReview> findAll() {
-        return pizzaReviewCollection.find().into(new ArrayList<>());
-    }
+        try {
+            SearchResponse<PizzaReview> response = elasticsearchClient.search(s -> s
+                .index("pizza-reviews")
+                .query(MatchAllQuery.of(m -> m)._toQuery()),
+                PizzaReview.class);
+            return response.hits().hits()
+                .stream()
+                .map(pizzaReviewHit -> pizzaReviewHit.source())
+                .collect(Collectors.toList());
+            } catch (Exception e) {
+                // TODO: better error handling
+                return null;
+            }
+        }
 
     @Override
-    public PizzaReview save(PizzaReview pizzaOrder) {
-        pizzaReviewCollection.insertOne(pizzaOrder);
-        return pizzaOrder;
+    public List<PizzaReview> searchByKeyword(String keyword, String fieldName) {
+        try {
+            SearchResponse<PizzaReview> elasticResponse = elasticsearchClient.search(s -> s
+            .index("pizza-reviews")
+            .query(q -> q
+                .match(t -> t
+                    .field("comment")
+                    .query(fieldName)
+                )
+            ),
+            PizzaReview.class
+        );
+
+        return elasticResponse.hits().hits()
+            .stream()
+            .map(pizzaReviewHit -> pizzaReviewHit.source())
+            .collect(Collectors.toList());
+        } catch (Exception e) {
+            // TODO: better error handling
+            return null;
+        }
     }
 
     @Override
@@ -128,12 +158,6 @@ public class ElasticPizzaReviewRepositoryImpl implements PizzaReviewRepository {
     public void deleteAll() {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'deleteAll'");
-    }
-
-    @Override
-    public Page<PizzaReview> findByPizzaName(String pizzaName, Pageable pageable) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'findByPizzaName'");
     }
 
     @Override
