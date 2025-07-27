@@ -40,7 +40,7 @@ public class PizzaReviewServiceImpl implements PizzaReviewService {
 
     @Override
     public List<PizzaReviewDTO> findReviewsByPizzaName(String pizzaName) {
-        return pizzaReviewRepository.searchByKeyword(pizzaName, "pizzaName")
+        return pizzaReviewRepository.searchByPizzaName(pizzaName)
             .stream()
             .map(pizzaReview -> new PizzaReviewDTO(pizzaReview))
             .collect(Collectors.toList());
@@ -48,7 +48,7 @@ public class PizzaReviewServiceImpl implements PizzaReviewService {
 
     @Override
     public List<PizzaReviewDTO> searchReviewsByKeyword(String keyword) throws ElasticsearchException, IOException {
-        return pizzaReviewRepository.searchByKeyword(keyword, "comment")
+        return pizzaReviewRepository.searchByComment(keyword)
             .stream()
             .map(pizzaReview -> new PizzaReviewDTO(pizzaReview))
             .collect(Collectors.toList());

@@ -59,14 +59,14 @@ public class ElasticPizzaReviewRepositoryImpl implements PizzaReviewRepository {
         }
 
     @Override
-    public List<PizzaReview> searchByKeyword(String keyword, String fieldName) {
+    public List<PizzaReview> searchByComment(String keyword) {
         try {
             SearchResponse<PizzaReview> elasticResponse = elasticsearchClient.search(s -> s
             .index("pizza-reviews")
             .query(q -> q
                 .match(t -> t
                     .field("comment")
-                    .query(fieldName)
+                    .query(keyword)
                 )
             ),
             PizzaReview.class
@@ -81,6 +81,54 @@ public class ElasticPizzaReviewRepositoryImpl implements PizzaReviewRepository {
             return null;
         }
     }
+
+    @Override
+    public List<PizzaReview> searchByPizzaName(String pizzaName) {
+        try {
+            SearchResponse<PizzaReview> elasticResponse = elasticsearchClient.search(s -> s
+            .index("pizza-reviews")
+            .query(q -> q
+                .match(t -> t
+                    .field("pizzaName")
+                    .query(pizzaName)
+                )
+            ),
+            PizzaReview.class
+        );
+
+        return elasticResponse.hits().hits()
+            .stream()
+            .map(pizzaReviewHit -> pizzaReviewHit.source())
+            .collect(Collectors.toList());
+        } catch (Exception e) {
+            // TODO: better error handling
+            return null;
+        }
+    }
+
+    // @Override
+    // public List<PizzaReview> searchByKeyword(String keyword, String fieldName) {
+    //     try {
+    //         SearchResponse<PizzaReview> elasticResponse = elasticsearchClient.search(s -> s
+    //         .index("pizza-reviews")
+    //         .query(q -> q
+    //             .match(t -> t
+    //                 .field("comment")
+    //                 .query(fieldName)
+    //             )
+    //         ),
+    //         PizzaReview.class
+    //     );
+
+    //     return elasticResponse.hits().hits()
+    //         .stream()
+    //         .map(pizzaReviewHit -> pizzaReviewHit.source())
+    //         .collect(Collectors.toList());
+    //     } catch (Exception e) {
+    //         // TODO: better error handling
+    //         return null;
+    //     }
+    // }
 
     @Override
     public Page<PizzaReview> searchSimilar(PizzaReview entity, String[] fields, Pageable pageable) {
