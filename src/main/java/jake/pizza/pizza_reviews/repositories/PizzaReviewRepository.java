@@ -12,7 +12,6 @@ public interface PizzaReviewRepository extends ElasticsearchRepository<PizzaRevi
     @Override
     public List<PizzaReview> findAll();
 
-    // public List<PizzaReview> searchByKeyword(String keyword, String fieldName);
     public List<PizzaReview> searchByPizzaName(String keyword);
 
     public List<PizzaReview> searchByComment(String keyword);
