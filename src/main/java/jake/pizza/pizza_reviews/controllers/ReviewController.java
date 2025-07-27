@@ -61,7 +61,7 @@ public class ReviewController {
     }
     
     // TODO: More options for FE e.g.:
-    // TODO: Endpoint to get all reviews by keyword search/pizza tag filter
+    // TODO: Endpoint to get all reviews by pizza tag filter i.e. gluten free, vegan
     
 
 }
